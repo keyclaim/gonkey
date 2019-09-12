@@ -6,13 +6,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/lamoda/gonkey/checker"
-	"github.com/lamoda/gonkey/cmd_runner"
-	"github.com/lamoda/gonkey/fixtures"
-	"github.com/lamoda/gonkey/mocks"
-	"github.com/lamoda/gonkey/models"
-	"github.com/lamoda/gonkey/output"
-	"github.com/lamoda/gonkey/testloader"
+	"github.com/keyclaim/gonkey/checker"
+	"github.com/keyclaim/gonkey/cmd_runner"
+	"github.com/keyclaim/gonkey/fixtures"
+	"github.com/keyclaim/gonkey/mocks"
+	"github.com/keyclaim/gonkey/models"
+	"github.com/keyclaim/gonkey/output"
+	"github.com/keyclaim/gonkey/testloader"
 )
 
 type Config struct {
@@ -47,7 +47,12 @@ func (r *Runner) AddCheckers(c ...checker.CheckerInterface) {
 
 func (r *Runner) Run() (*models.Summary, error) {
 	if r.loader == nil {
-		return &models.Summary{true, 0, 0}, nil
+		s := &models.Summary{
+			Success: true,
+			Failed:  0,
+			Total:   0,
+		}
+		return s, nil
 	}
 
 	loader, err := r.loader.Load()

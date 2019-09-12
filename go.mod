@@ -1,4 +1,4 @@
-module github.com/lamoda/gonkey
+module github.com/keyclaim/gonkey
 
 go 1.12
 
@@ -12,8 +12,8 @@ require (
 	github.com/google/uuid v1.0.0
 	github.com/kylelemons/godebug v1.1.0
 	github.com/lib/pq v0.0.0-20180319194135-b2004221932b
-	github.com/mattn/go-colorable v0.1.1 // indirect
-	github.com/mattn/go-isatty v0.0.7 // indirect
+	github.com/mattn/go-colorable v0.1.2 // indirect
+	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/stretchr/testify v1.3.0
 	gopkg.in/DATA-DOG/go-sqlmock.v1 v1.3.0
 	gopkg.in/yaml.v2 v2.2.2
