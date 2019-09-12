@@ -6,8 +6,8 @@ import (
 	"text/template"
 
 	"github.com/fatih/color"
-	"github.com/lamoda/gonkey/models"
-	"github.com/lamoda/gonkey/output"
+	"github.com/keyclaim/gonkey/models"
+	"github.com/keyclaim/gonkey/output"
 )
 
 const dotsPerLine = 80
@@ -70,12 +70,20 @@ Response:
        Body:
 {{ if .ResponseBody }}{{ yellow .ResponseBody }}{{ else }}{{ yellow "<no body>" }}{{ end }}
 
+{{ if .DbQuery }}
+       Db Request:
+{{ cyan .DbQuery }}
+       Db Response:
+{{ range $value := .DbResponse }}
+{{ yellow $value }}{{ end }}
+{{ end }}
+
 {{ if .Errors }}
      Result: {{ danger "ERRORS!" }}
 
 Errors:
 {{ range $i, $e := .Errors }}
-{{ inc $i }}) {{ $e.Error }}
+{{ inc $i }} {{ $e.Error }}
 {{ end }}
 {{ else }}
      Result: {{ success "OK" }}

@@ -6,13 +6,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/lamoda/gonkey/checker/response_body"
-	"github.com/lamoda/gonkey/checker/response_db"
-	"github.com/lamoda/gonkey/fixtures"
-	"github.com/lamoda/gonkey/mocks"
-	"github.com/lamoda/gonkey/output/allure_report"
-	testingOutput "github.com/lamoda/gonkey/output/testing"
-	"github.com/lamoda/gonkey/testloader/yaml_file"
+	"github.com/keyclaim/gonkey/checker/response_body"
+	"github.com/keyclaim/gonkey/checker/response_db"
+	"github.com/keyclaim/gonkey/fixtures"
+	"github.com/keyclaim/gonkey/mocks"
+	"github.com/keyclaim/gonkey/output/allure_report"
+	testingOutput "github.com/keyclaim/gonkey/output/testing"
+	"github.com/keyclaim/gonkey/testloader/yaml_file"
 )
 
 type RunWithTestingParams struct {
@@ -42,6 +42,9 @@ func RunWithTesting(t *testing.T, params *RunWithTestingParams) {
 		})
 	}
 
+	yamlLoader := yaml_file.NewLoader(params.TestsDir)
+	yamlLoader.SetFileFilter(os.Getenv("GONKEY_FILE_FILTER"))
+
 	r := New(
 		&Config{
 			Host:           params.Server.URL,
@@ -49,7 +52,7 @@ func RunWithTesting(t *testing.T, params *RunWithTestingParams) {
 			MocksLoader:    mocksLoader,
 			FixturesLoader: fixturesLoader,
 		},
-		yaml_file.NewLoader(params.TestsDir),
+		yamlLoader,
 	)
 
 	r.AddOutput(testingOutput.NewOutput(t))

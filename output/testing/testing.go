@@ -5,8 +5,8 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/lamoda/gonkey/models"
-	"github.com/lamoda/gonkey/output"
+	"github.com/keyclaim/gonkey/models"
+	"github.com/keyclaim/gonkey/output"
 )
 
 type TestingOutput struct {
@@ -34,7 +34,6 @@ func (o *TestingOutput) Process(t models.TestInterface, result *models.Result) e
 func renderResult(result *models.Result) (string, error) {
 	text := `
        Name: {{ .Test.GetName }}
-
 Request:
      Method: {{ .Test.GetMethod }}
        Path: {{ .Test.Path }}
@@ -53,18 +52,24 @@ Request:
 {{- end }}
        Body:
 {{ if .RequestBody }}{{ .RequestBody }}{{ else }}{{ "<no body>" }}{{ end }}
-
 Response:
      Status: {{ .ResponseStatus }}
        Body:
 {{ if .ResponseBody }}{{ .ResponseBody }}{{ else }}{{ "<no body>" }}{{ end }}
 
+{{ if .DbQuery }}
+       Db Request:
+{{ .DbQuery }}
+       Db Response:
+{{ range $value := .DbResponse }}
+{{ $value }}{{ end }}
+{{ end }}
+
 {{ if .Errors }}
      Result: {{ "ERRORS!" }}
-
 Errors:
 {{ range $i, $e := .Errors }}
-{{ inc $i }}) {{ $e.Error }}
+{{ inc $i }} {{ $e.Error }}
 {{ end }}
 {{ else }}
      Result: {{ "OK" }}

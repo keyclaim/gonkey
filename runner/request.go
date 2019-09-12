@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/lamoda/gonkey/models"
+	"github.com/keyclaim/gonkey/models"
 )
 
 func newClient() *http.Client {
@@ -36,8 +36,9 @@ func newRequest(host string, test models.TestInterface) (*http.Request, error) {
 		request.AddCookie(&http.Cookie{Name: k, Value: v})
 	}
 
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Connection", "close")
+	if request.Header.Get("Content-Type") == "" {
+		request.Header.Set("Content-Type", "application/json")
+	}
 
 	return request, nil
 }
