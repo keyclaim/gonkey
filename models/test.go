@@ -10,7 +10,8 @@ type TestInterface interface {
 	GetName() string
 	Fixtures() []string
 	ServiceMocks() map[string]interface{}
-	Pause() int
+	BeforePause() int
+	AfterPause() int
 	BeforeScriptPath() string
 	BeforeScriptTimeout() int
 	Cookies() map[string]string

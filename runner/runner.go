@@ -116,11 +116,11 @@ func (r *Runner) executeTest(v models.TestInterface, client *http.Client) (*mode
 		}
 	}
 
-	//make pause
-	pause := v.Pause()
-	if pause > 0 {
-		time.Sleep(time.Duration(pause) * time.Second)
-		fmt.Printf("Sleep %ds before requests\n", pause)
+	//make pause before request
+	beforePause := v.BeforePause()
+	if beforePause > 0 {
+		time.Sleep(time.Duration(beforePause) * time.Second)
+		fmt.Printf("Sleep %ds before requests\n", beforePause)
 	}
 
 	req, err := newRequest(r.config.Host, v)
@@ -148,6 +148,13 @@ func (r *Runner) executeTest(v models.TestInterface, client *http.Client) (*mode
 		ResponseStatusCode:  resp.StatusCode,
 		ResponseStatus:      resp.Status,
 		Test:                v,
+	}
+
+	//make pause before request
+	afterPause := v.AfterPause()
+	if afterPause > 0 {
+		time.Sleep(time.Duration(afterPause) * time.Second)
+		fmt.Printf("Sleep %ds after requests\n", afterPause)
 	}
 
 	if r.config.Mocks != nil {

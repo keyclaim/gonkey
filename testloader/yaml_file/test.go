@@ -61,8 +61,12 @@ func (t *Test) ServiceMocks() map[string]interface{} {
 	return t.MocksDefinition
 }
 
-func (t *Test) Pause() int {
-	return t.PauseValue
+func (t *Test) BeforePause() int {
+	return t.BeforePauseValue
+}
+
+func (t *Test) AfterPause() int {
+	return t.AfterPauseValue
 }
 
 func (t *Test) BeforeScriptPath() string {
