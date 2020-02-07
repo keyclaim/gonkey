@@ -4,7 +4,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/keyclaim/gonkey/runner"
+	"github.com/lamoda/gonkey/runner"
 )
 
 func Test_API(t *testing.T) {

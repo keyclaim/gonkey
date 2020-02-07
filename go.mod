@@ -1,4 +1,4 @@
-module github.com/keyclaim/gonkey
+module github.com/lamoda/gonkey
 
 go 1.12
 

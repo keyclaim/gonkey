@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/keyclaim/gonkey/compare"
+	"github.com/lamoda/gonkey/compare"
 )
 
 type verifier interface {

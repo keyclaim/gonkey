@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/keyclaim/gonkey/models"
+	"github.com/lamoda/gonkey/models"
 )
 
 func newClient() *http.Client {

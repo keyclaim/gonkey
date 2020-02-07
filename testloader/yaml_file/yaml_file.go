@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/keyclaim/gonkey/models"
-	"github.com/keyclaim/gonkey/testloader"
+	"github.com/lamoda/gonkey/models"
+	"github.com/lamoda/gonkey/testloader"
 )
 
 type YamlFileLoader struct {
