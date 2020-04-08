@@ -16,7 +16,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const tempTableSuffix = "_table_gonkey"
+const (
+	postgres        = "postgres"
+	mysql           = "mysql"
+	tempTableSuffix = "_table_gonkey"
+)
 
 type row map[string]interface{}
 
@@ -27,6 +31,7 @@ type rowsDict map[string]row
 type fixture struct {
 	Version   string
 	Inherits  []string
+	Dummies   []string
 	Tables    yaml.MapSlice
 	Templates yaml.MapSlice
 }
@@ -37,6 +42,7 @@ type loadedTable struct {
 }
 
 type loadContext struct {
+	dummies        []string
 	files          []string
 	tables         []loadedTable
 	refsDefinition rowsDict
@@ -45,22 +51,30 @@ type loadContext struct {
 
 type Config struct {
 	DB       *sql.DB
+	Driver   string
 	Location string
 	Debug    bool
 }
 
 type Loader struct {
 	db       *sql.DB
+	driver   string
 	location string
 	debug    bool
 }
 
-func NewLoader(config *Config) *Loader {
+var drivers = []string{mysql, postgres}
+
+func NewLoader(config *Config) (*Loader, error) {
+	if !isStringInList(config.Driver, drivers) {
+		return nil, errors.New(fmt.Sprintf("driver '%s' is not supported", config.Driver))
+	}
 	return &Loader{
 		db:       config.DB,
+		driver:   config.Driver,
 		location: strings.TrimRight(config.Location, "/"),
 		debug:    config.Debug,
-	}
+	}, nil
 }
 
 func (f *Loader) Load(names []string) error {
@@ -122,6 +136,11 @@ func (f *Loader) loadYml(data []byte, ctx *loadContext) error {
 		if err := f.loadFile(inheritFile, ctx); err != nil {
 			return err
 		}
+	}
+
+	// load dummies
+	for _, dummy := range loadedFixture.Dummies {
+		(*ctx).dummies = append((*ctx).dummies, dummy)
 	}
 
 	// loadedFixture.Templates
@@ -200,16 +219,47 @@ func (f *Loader) loadTables(ctx *loadContext) error {
 
 	// truncate first
 	truncatedTables := make(map[string]bool)
-	for _, lt := range ctx.tables {
-		if _, ok := truncatedTables[lt.Name]; ok {
-			// already truncated
-			continue
+	switch f.driver {
+	case mysql:
+		for _, dummy := range ctx.dummies {
+			if err := f.truncateMysqlTable(dummy); err != nil {
+				return err
+			}
+			truncatedTables[dummy] = true
 		}
-		if err := f.truncateTable(lt.Name); err != nil {
-			return err
+		for _, lt := range ctx.tables {
+			if _, ok := truncatedTables[lt.Name]; ok {
+				// already truncated
+				continue
+			}
+			if err := f.truncateMysqlTable(lt.Name); err != nil {
+				return err
+			}
+			truncatedTables[lt.Name] = true
 		}
-		truncatedTables[lt.Name] = true
+	case postgres:
+		for _, dummy := range ctx.dummies {
+			if err := f.truncatePostgresTable(dummy); err != nil {
+				return err
+			}
+			truncatedTables[dummy] = true
+			fmt.Printf("\n Truncating %s", dummy)
+		}
+		for _, lt := range ctx.tables {
+			if _, ok := truncatedTables[lt.Name]; ok {
+				// already truncated
+				continue
+			}
+			if err := f.truncatePostgresTable(lt.Name); err != nil {
+				return err
+			}
+			truncatedTables[lt.Name] = true
+			fmt.Printf("\n Truncating %s", lt.Name)
+		}
+	default:
+		return fmt.Errorf("unkonw driver: %s", f.driver)
 	}
+
 	// then load data
 	for _, lt := range ctx.tables {
 		if len(lt.Rows) == 0 {
@@ -220,21 +270,43 @@ func (f *Loader) loadTables(ctx *loadContext) error {
 		}
 	}
 	// alter the sequences so they contain max id + 1
-	if err := f.fixSequences(); err != nil {
+	if f.driver == postgres {
+		if err := f.fixSequences(); err != nil {
+			return err
+		}
+	}
+	if err := tx.Commit(); err != nil {
 		return err
 	}
-
-	tx.Commit()
 	return nil
 }
 
-// truncateTable truncates table
-func (f *Loader) truncateTable(name string) error {
+func (f *Loader) truncatePostgresTable(name string) error {
 	query := fmt.Sprintf("TRUNCATE TABLE \"%s\" CASCADE", name)
 	if f.debug {
 		fmt.Println("Issuing SQL:", query)
 	}
 	_, err := f.db.Exec(query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (f *Loader) truncateMysqlTable(name string) error {
+	_, err := f.db.Exec("SET FOREIGN_KEY_CHECKS=0;")
+	if err != nil {
+		return err
+	}
+	query := fmt.Sprintf("TRUNCATE TABLE `%s`;", name)
+	if f.debug {
+		fmt.Println("Issuing SQL:", query)
+	}
+	_, err = f.db.Exec(query)
+	if err != nil {
+		return err
+	}
+	_, err = f.db.Exec("SET FOREIGN_KEY_CHECKS=1;")
 	if err != nil {
 		return err
 	}
@@ -270,9 +342,9 @@ func (f *Loader) loadTable(ctx *loadContext, t string, rows table) error {
 		return err
 	}
 	defer insertedRows.Close()
-	// reading results
-	// here I assume that returning rows go in the same
-	// order as values were passed to INSERT statement
+	//reading results
+	//here I assume that returning rows go in the same
+	//order as values were passed to INSERT statement
 	for _, row := range rows {
 		if !insertedRows.Next() {
 			break
@@ -344,9 +416,10 @@ END$$
 func (f *Loader) buildInsertQuery(ctx *loadContext, t string, rows table) (string, error) {
 	// first pass, collecting all the fields
 	var fields []string
+	var query string
 	fieldPresence := make(map[string]bool)
 	for _, row := range rows {
-		for name, _ := range row {
+		for name := range row {
 			if len(name) > 0 && name[0] == '$' {
 				continue
 			}
@@ -386,14 +459,28 @@ func (f *Loader) buildInsertQuery(ctx *loadContext, t string, rows table) (strin
 		}
 		dbValues[i] = "(" + strings.Join(dbValuesRow, ", ") + ")"
 	}
-	// quote fields
-	for i, field := range fields {
-		fields[i] = "\"" + field + "\""
-	}
+	//quote fields
+	switch f.driver {
+	case mysql:
+		for i, field := range fields {
+			fields[i] = "`" + field + "`"
+		}
+		query = fmt.Sprintf(
+			"INSERT INTO `%s` (%s) VALUES %s",
+			t, strings.Join(fields, ", "), strings.Join(dbValues, ", "))
+	case postgres:
 
-	tableAlias := t + tempTableSuffix // guarantees that table and column won't collide
-	query := "INSERT INTO \"%s\" AS %s (%s) VALUES %s RETURNING row_to_json(%[2]s)"
-	return fmt.Sprintf(query, t, tableAlias, strings.Join(fields, ", "), strings.Join(dbValues, ", ")), nil
+		// quote fields
+		for i, field := range fields {
+			fields[i] = "\"" + field + "\""
+		}
+
+		tableAlias := t + tempTableSuffix // guarantees that table and column won't collide
+		query = fmt.Sprintf(
+			"INSERT INTO \"%s\" AS %s (%s) VALUES %s RETURNING row_to_json(%[2]s)",
+			t, tableAlias, strings.Join(fields, ", "), strings.Join(dbValues, ", "))
+	}
+	return query, nil
 }
 
 // resolveExpression converts expressions starting with dollar sign into a value
@@ -501,4 +588,13 @@ func quoteLiteral(s string) string {
 	s = strings.Replace(s, `'`, `''`, -1)
 	s = strings.Replace(s, `\`, `\\`, -1)
 	return p + `'` + s + `'`
+}
+
+func isStringInList(s string, list []string) bool {
+	for _, el := range list {
+		if s == el {
+			return true
+		}
+	}
+	return false
 }

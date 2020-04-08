@@ -35,7 +35,11 @@ tables:
 		refsInserted:   make(map[string]row),
 	}
 
-	l := NewLoader(&Config{})
+	l, err := NewLoader(&Config{Driver: postgres})
+	if err != nil {
+		t.Error("must not produce error, error:", err.Error())
+		t.Fail()
+	}
 	l.loadYml([]byte(yml), &ctx)
 
 	query, err := l.buildInsertQuery(&ctx, "table", ctx.tables[0].Rows)
@@ -80,7 +84,11 @@ tables:
 		refsInserted:   make(map[string]row),
 	}
 
-	l := NewLoader(&Config{DB: db, Debug: true})
+	l, err := NewLoader(&Config{DB: db, Driver: postgres, Debug: true})
+	if err != nil {
+		t.Error("must not produce error, error:", err.Error())
+		t.Fail()
+	}
 
 	err = l.loadYml([]byte(yml), &ctx)
 	if err != nil {
@@ -182,7 +190,11 @@ tables:
 		refsInserted:   make(map[string]row),
 	}
 
-	l := NewLoader(&Config{DB: db, Debug: true})
+	l, err := NewLoader(&Config{DB: db, Driver: postgres, Debug: true})
+	if err != nil {
+		t.Error("must not produce error, error:", err.Error())
+		t.Fail()
+	}
 
 	err = l.loadYml([]byte(yml), &ctx)
 	if err != nil {

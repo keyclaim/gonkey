@@ -10,15 +10,15 @@ import (
 
 	"github.com/joho/godotenv"
 
-	"github.com/lamoda/gonkey/checker/response_body"
-	"github.com/lamoda/gonkey/checker/response_db"
-	"github.com/lamoda/gonkey/checker/response_schema"
-	"github.com/lamoda/gonkey/fixtures"
-	"github.com/lamoda/gonkey/output/allure_report"
-	"github.com/lamoda/gonkey/output/console_colored"
-	"github.com/lamoda/gonkey/runner"
-	"github.com/lamoda/gonkey/testloader/yaml_file"
-	"github.com/lamoda/gonkey/variables"
+	"github.com/keyclaim/gonkey/checker/response_body"
+	"github.com/keyclaim/gonkey/checker/response_db"
+	"github.com/keyclaim/gonkey/checker/response_schema"
+	"github.com/keyclaim/gonkey/fixtures"
+	"github.com/keyclaim/gonkey/output/allure_report"
+	"github.com/keyclaim/gonkey/output/console_colored"
+	"github.com/keyclaim/gonkey/runner"
+	"github.com/keyclaim/gonkey/testloader/yaml_file"
+	"github.com/keyclaim/gonkey/variables"
 )
 
 func main() {
@@ -70,8 +70,9 @@ func main() {
 
 	var fixturesLoader *fixtures.Loader
 	if db != nil && config.FixturesLocation != "" {
-		fixturesLoader = fixtures.NewLoader(&fixtures.Config{
+		fixturesLoader, _ = fixtures.NewLoader(&fixtures.Config{
 			DB:       db,
+			Driver:   "postgres",
 			Location: config.FixturesLocation,
 			Debug:    config.Debug,
 		})
