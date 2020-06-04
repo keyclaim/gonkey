@@ -1,11 +1,9 @@
-// +build !windows
-
-package cmd_runner
+package cli
 
 import (
-	"bufio"
+	"bytes"
 	"fmt"
-	"log"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -13,7 +11,32 @@ import (
 	"time"
 )
 
-func CmdRun(scriptPath string, timeout int) error {
+// CapturingPassThroughWriter is a writer that remembers
+// data written to it and passes it to w
+type CapturingPassThroughWriter struct {
+	buf bytes.Buffer
+	w   io.Writer
+}
+
+// NewCapturingPassThroughWriter creates new CapturingPassThroughWriter
+func NewCapturingPassThroughWriter(w io.Writer) *CapturingPassThroughWriter {
+	return &CapturingPassThroughWriter{
+		w: w,
+	}
+}
+
+// Write writes data to the writer, returns number of bytes written and an error
+func (w *CapturingPassThroughWriter) Write(d []byte) (int, error) {
+	w.buf.Write(d)
+	return w.w.Write(d)
+}
+
+// Bytes returns bytes written to the writer
+func (w *CapturingPassThroughWriter) Bytes() []byte {
+	return w.buf.Bytes()
+}
+
+func RunCommand(scriptPath string, timeout int) error {
 	//by default timeout should be 3s
 	if timeout <= 0 {
 		timeout = 3
@@ -24,19 +47,24 @@ func CmdRun(scriptPath string, timeout int) error {
 	// Set up a process group which will be killed later
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
+	var errStdout, errStderr error
+	stdoutIn, _ := cmd.StdoutPipe()
+	stderrIn, _ := cmd.StderrPipe()
+	stdout := NewCapturingPassThroughWriter(os.Stdout)
+	stderr := NewCapturingPassThroughWriter(os.Stderr)
 
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	fmt.Printf("\nStarting the exection of the script: \n%s with timeout: %ds\n", scriptPath, timeout)
 
 	done := make(chan error, 1)
 	go func() {
+		_, errStdout = io.Copy(stdout, stdoutIn)
 		done <- cmd.Wait()
 	}()
+
+	_, errStderr = io.Copy(stderr, stderrIn)
 
 	select {
 	case <-time.After(time.Duration(timeout) * time.Second):
@@ -55,15 +83,12 @@ func CmdRun(scriptPath string, timeout int) error {
 		if err != nil {
 			return fmt.Errorf("process finished with error = %v", err)
 		}
-		log.Print("Process finished successfully")
 	}
 
-	// Print log
-	scanner := bufio.NewScanner(stdout)
-	for scanner.Scan() {
-		m := scanner.Text()
-		fmt.Println(m)
+	if errStdout != nil || errStderr != nil {
+		return fmt.Errorf("failed to capture stdout or stderr")
 	}
+	fmt.Printf("Execution of the script finished successfully\n")
 
 	return nil
 }
