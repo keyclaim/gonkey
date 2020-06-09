@@ -243,7 +243,6 @@ func (f *Loader) loadTables(ctx *loadContext) error {
 				return err
 			}
 			truncatedTables[dummy] = true
-			fmt.Printf("\n Truncating %s", dummy)
 		}
 		for _, lt := range ctx.tables {
 			if _, ok := truncatedTables[lt.Name]; ok {
@@ -254,7 +253,6 @@ func (f *Loader) loadTables(ctx *loadContext) error {
 				return err
 			}
 			truncatedTables[lt.Name] = true
-			fmt.Printf("\n Truncating %s", lt.Name)
 		}
 	default:
 		return fmt.Errorf("unkonw driver: %s", f.driver)
