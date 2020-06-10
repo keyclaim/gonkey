@@ -69,7 +69,7 @@ func makeTestFromDefinition(testDefinition TestDefinition) ([]Test, error) {
 	// produce as many tests as cases defined
 	for caseIdx, testCase := range testDefinition.Cases {
 		test := Test{TestDefinition: testDefinition}
-		test.Name = fmt.Sprintf("%s #%d", test.Name, caseIdx)
+		test.Name = fmt.Sprintf("%s #%d", test.Name, caseIdx+1)
 
 		// compile request body
 		test.Request, err = executeTmpl(requestTmpl, testCase.RequestArgs)
