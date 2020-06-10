@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/keyclaim/gonkey/checker/response_body"
@@ -67,7 +68,7 @@ func RunWithTesting(t *testing.T, params *RunWithTestingParams) {
 	r.AddOutput(testingOutput.NewOutput(t))
 
 	if os.Getenv("GONKEY_ALLURE_DIR") != "" {
-		allureOutput := allure_report.NewOutput("Gonkey", os.Getenv("GONKEY_ALLURE_DIR"))
+		allureOutput := allure_report.NewOutput(strings.TrimLeft(params.TestsDir, "./cases/"), os.Getenv("GONKEY_ALLURE_DIR"))
 		defer allureOutput.Finalize()
 		r.AddOutput(allureOutput)
 	}

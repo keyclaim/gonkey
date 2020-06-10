@@ -23,7 +23,7 @@ func NewSuite(name string, start time.Time) *Suite {
 	s := new(Suite)
 
 	s.NsAttr = NsModel
-	s.Name = name
+	s.Name = "Gonkey"
 	s.Title = name
 
 	if !start.IsZero() {
