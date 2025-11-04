@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"sync"
+
+	"github.com/lamoda/gonkey/models"
 )
 
 const CallsNoConstraint = -1
@@ -13,6 +15,7 @@ type Definition struct {
 	path               string
 	requestConstraints []verifier
 	replyStrategy      ReplyStrategy
+	serviceName        string // Optional: set by ServiceMock for better error messages
 	sync.Mutex
 	calls           int
 	callsConstraint int
@@ -25,6 +28,10 @@ func NewDefinition(path string, constraints []verifier, strategy ReplyStrategy, 
 		replyStrategy:      strategy,
 		callsConstraint:    callsConstraint,
 	}
+}
+
+func (d *Definition) SetServiceName(serviceName string) {
+	d.serviceName = serviceName
 }
 
 func (d *Definition) Execute(w http.ResponseWriter, r *http.Request) []error {
@@ -72,8 +79,15 @@ func (d *Definition) EndRunningContext() []error {
 		errs = s.EndRunningContext()
 	}
 	if d.callsConstraint != CallsNoConstraint && d.calls != d.callsConstraint {
-		err := fmt.Errorf("at path %s: number of calls does not match: expected %d, actual %d",
-			d.path, d.callsConstraint, d.calls)
+		var err error
+		if d.serviceName != "" {
+			err = models.NewMockErrorWithService(d.serviceName,
+				"at path %s: number of calls does not match: expected %d, actual %d",
+				d.path, d.callsConstraint, d.calls)
+		} else {
+			err = models.NewMockError("at path %s: number of calls does not match: expected %d, actual %d",
+				d.path, d.callsConstraint, d.calls)
+		}
 		errs = append(errs, err)
 	}
 	return errs

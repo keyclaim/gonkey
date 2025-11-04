@@ -14,6 +14,10 @@ func (e *Error) Error() string {
 	return fmt.Sprintf("mock %s: %s", e.ServiceName, e.error.Error())
 }
 
+func (e *Error) Unwrap() error {
+	return e.error
+}
+
 type RequestConstraintError struct {
 	error
 	Constraint  verifier
@@ -23,4 +27,8 @@ type RequestConstraintError struct {
 func (e *RequestConstraintError) Error() string {
 	kind := reflect.TypeOf(e.Constraint).String()
 	return fmt.Sprintf("request constraint %s failed: %s, request was:\n %s", kind, e.error.Error(), e.RequestDump)
+}
+
+func (e *RequestConstraintError) Unwrap() error {
+	return e.error
 }
